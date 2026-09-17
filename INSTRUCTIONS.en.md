@@ -1,7 +1,7 @@
-# Instructions for Creating Patches for `pure-py-patcher.py`
+# Instructions for Creating Patches for `pyed-patcher.py`
 
 You are an AI assistant helping the user edit files in their local project.
-The user applies patches using a custom local Python script called `pure-py-patcher.py`.
+The user applies patches using a custom local Python script called `pyed-patcher.py`.
 **Your task is to generate ONLY valid patch text that this script can apply without errors.**
 
 Always strictly follow this syntax. Do not deviate from it even a single step.
@@ -10,13 +10,13 @@ Always strictly follow this syntax. Do not deviate from it even a single step.
 
 ## 0. About the Script
 
-- **File:** `pure-py-patcher.py`
+- **File:** `pyed-patcher.py`
 - **Language:** Pure Python 3 (no external dependencies)
 - **Running:**
   ```bash
-  python3 pure-py-patcher.py patch.txt           # from file
-  echo '...' | python3 pure-py-patcher.py        # from stdin
-  python3 pure-py-patcher.py patch1.txt patch2.txt  # multiple patches in sequence
+  python3 pyed-patcher.py patch.txt           # from file
+  echo '...' | python3 pyed-patcher.py        # from stdin
+  python3 pyed-patcher.py patch1.txt patch2.txt  # multiple patches in sequence
   ```
 
 ### CLI Flags
@@ -48,17 +48,17 @@ Always strictly follow this syntax. Do not deviate from it even a single step.
 
 - Before **any** modification/deletion/move, a backup is created
 - Backup name: `filename.NN` (e.g., `main.py.01`, `main.py.02`)
-- Rollback: `python3 pure-py-patcher.py --undo main.py` or `--undo-all`
+- Rollback: `python3 pyed-patcher.py --undo main.py` or `--undo-all`
 
 ### Templates
 
 - Patches can contain placeholders: `{{VAR}}` or `{{VAR:default}}`
-- When applying: `python3 pure-py-patcher.py --var VERSION=1.2.3 patch.txt`
+- When applying: `python3 pyed-patcher.py --var VERSION=1.2.3 patch.txt`
 - Unsubstituted variables remain as-is: `{{UNKNOWN}}`
 
 ### Logging
 
-- All operations are recorded in `.pure-py-patcher.log`
+- All operations are recorded in `.pyed-patcher.log`
 - Format: `[YYYY-MM-DD HH:MM:SS] ACTION | details`
 
 ---
@@ -218,7 +218,7 @@ Any line starting with `***` that is not a known command will be treated as a co
 
 **Applying:**
 ```bash
-python3 pure-py-patcher.py --var FILENAME=config.py --var VERSION=2.1.0 --var NAME=Alice patch.txt
+python3 pyed-patcher.py --var FILENAME=config.py --var VERSION=2.1.0 --var NAME=Alice patch.txt
 ```
 
 ---
@@ -260,37 +260,37 @@ python3 pure-py-patcher.py --var FILENAME=config.py --var VERSION=2.1.0 --var NA
 
 ### Check Before Applying
 ```bash
-python3 pure-py-patcher.py --show patch.txt
-python3 pure-py-patcher.py --dry-run patch.txt
-python3 pure-py-patcher.py --val patch.txt
+python3 pyed-patcher.py --show patch.txt
+python3 pyed-patcher.py --dry-run patch.txt
+python3 pyed-patcher.py --val patch.txt
 ```
 
 ### Careful Application
 ```bash
-python3 pure-py-patcher.py --int patch.txt
-python3 pure-py-patcher.py --only src/main.py patch.txt
+python3 pyed-patcher.py --int patch.txt
+python3 pyed-patcher.py --only src/main.py patch.txt
 ```
 
 ### Rollback
 ```bash
-python3 pure-py-patcher.py --undo src/main.py
-python3 pure-py-patcher.py --undo-all
+python3 pyed-patcher.py --undo src/main.py
+python3 pyed-patcher.py --undo-all
 ```
 
 ### Templates
 ```bash
-python3 pure-py-patcher.py --var VERSION=2.0.0 release.patch
+python3 pyed-patcher.py --var VERSION=2.0.0 release.patch
 ```
 
 ### Memory Test
 ```bash
-python3 pure-py-patcher.py --memory patch.txt
-python3 pure-py-patcher.py --memory --show patch.txt
+python3 pyed-patcher.py --memory patch.txt
+python3 pyed-patcher.py --memory --show patch.txt
 ```
 
 ### Generate Patch
 ```bash
-python3 pure-py-patcher.py --generate old.py new.py --as src/main.py > changes.patch
+python3 pyed-patcher.py --generate old.py new.py --as src/main.py > changes.patch
 ```
 
 ---

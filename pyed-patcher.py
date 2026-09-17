@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pure-Py-Patcher — Local alternative to codex-apply-patch.
+Pyed-Patcher — Local alternative to codex-apply-patch.
 Applies a custom patch format to the filesystem.
 Reads patch from file or stdin. Only uses Python 3 standard library.
 Features: colored output, automatic backups, patch comments display,
@@ -91,7 +91,7 @@ def prompt(message: str) -> str:
 
 
 # --- Logging ---
-LOG_FILE = ".pure-py-patcher.log"
+LOG_FILE = ".pyed-patcher.log"
 
 
 def log_action(action: str, details: str = ""):
@@ -1027,8 +1027,8 @@ def parse_patch_info(patch: str) -> Tuple[List[str], List[str]]:
 # --- Main CLI Handler ---
 def print_usage():
     """Print usage information."""
-    print("Usage: python3 pure-py-patcher.py [options] [patch1.txt] [patch2.txt ...]")
-    print("       echo '...' | python3 pure-py-patcher.py [options]")
+    print("Usage: python3 pyed-patcher.py [options] [patch1.txt] [patch2.txt ...]")
+    print("       echo '...' | python3 pyed-patcher.py [options]")
     print("")
     print("Options:")
     print("  --dry-run          Preview changes without applying")
@@ -1235,7 +1235,7 @@ def main():
 
     if flags["--generate"]:
         if len(positional) < 2:
-            error("Usage: python3 pure-py-patcher.py --generate <original_file> <new_file> [--as <path_in_patch>]")
+            error("Usage: python3 pyed-patcher.py --generate <original_file> <new_file> [--as <path_in_patch>]")
             sys.exit(1)
         orig_file = positional[0]
         new_file = positional[1]
@@ -1259,7 +1259,7 @@ def main():
 
     if flags["--memory"]:
         if not positional:
-            error("Usage: python3 pure-py-patcher.py --memory <patch_file> [--var KEY=VALUE ...]")
+            error("Usage: python3 pyed-patcher.py --memory <patch_file> [--var KEY=VALUE ...]")
             sys.exit(1)
 
         patch_file = positional[0]
@@ -1330,7 +1330,7 @@ def main():
         sys.exit(0)
     if flags["--undo"]:
         if not positional:
-            error("Usage: python3 pure-py-patcher.py --undo <file>")
+            error("Usage: python3 pyed-patcher.py --undo <file>")
             sys.exit(1)
         for f in positional:
             undo_file(f)

@@ -1,4 +1,4 @@
-# Pure-Py-Patcher
+# Pyed-Patcher
 
 A CLI tool for applying patches using a custom patch format designed for AI coding assistants.
 
@@ -40,22 +40,22 @@ For AI instructions and some more info see [INSTRUCTIONS.en.md](INSTRUCTIONS.en.
 - In-memory patch application (`--memory`)
 - Patch generation from two files (`--generate`)
 - Parse patch structure (`--parse`)
-- Action logging to `.pure-py-patcher.log`
+- Action logging to `.pyed-patcher.log`
 
 ## Usage
 
 ```bash
 # Apply patch from file
-python3 pure-py-patcher.py patch.txt
+python3 pyed-patcher.py patch.txt
 
 # Apply patch from stdin
 echo '*** Begin Patch
 *** Add File: hello.py
 +print("Hello!")
-*** End Patch' | python3 pure-py-patcher.py
+*** End Patch' | python3 pyed-patcher.py
 
 # Multiple patches
-python3 pure-py-patcher.py patch1.txt patch2.txt patch3.txt
+python3 pyed-patcher.py patch1.txt patch2.txt patch3.txt
 ```
 
 ## CLI Flags
@@ -80,26 +80,26 @@ python3 pure-py-patcher.py patch1.txt patch2.txt patch3.txt
 
 ```bash
 # Preview before applying
-python3 pure-py-patcher.py --dry-run patch.txt
+python3 pyed-patcher.py --dry-run patch.txt
 
 # Interactive apply
-python3 pure-py-patcher.py --int patch.txt
+python3 pyed-patcher.py --int patch.txt
 
 # Apply only to specific files
-python3 pure-py-patcher.py --only src/main.py patch.txt
+python3 pyed-patcher.py --only src/main.py patch.txt
 
 # Use templates
-python3 pure-py-patcher.py --var VERSION=2.0.0 release.patch
+python3 pyed-patcher.py --var VERSION=2.0.0 release.patch
 
 # Test in memory
-python3 pure-py-patcher.py --memory --show patch.txt
+python3 pyed-patcher.py --memory --show patch.txt
 
 # Generate patch from two files
-python3 pure-py-patcher.py --generate old.py new.py --as src/main.py > changes.patch
+python3 pyed-patcher.py --generate old.py new.py --as src/main.py > changes.patch
 
 # Rollback
-python3 pure-py-patcher.py --undo src/main.py
-python3 pure-py-patcher.py --undo-all
+python3 pyed-patcher.py --undo src/main.py
+python3 pyed-patcher.py --undo-all
 ```
 
 ## Python API

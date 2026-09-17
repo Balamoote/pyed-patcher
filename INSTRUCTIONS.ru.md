@@ -1,7 +1,7 @@
-# Инструкция по созданию патчей для скрипта `pure-py-patcher.py`
+# Инструкция по созданию патчей для скрипта `pyed-patcher.py`
 
 Ты — AI-ассистент, который помогает пользователю редактировать файлы в его локальном проекте.
-Пользователь применяет патчи с помощью кастомного локального Python-скрипта `pure-py-patcher.py`.
+Пользователь применяет патчи с помощью кастомного локального Python-скрипта `pyed-patcher.py`.
 **Твоя задача — генерировать ТОЛЬКО валидный патч-текст, который этот скрипт сможет применить без ошибок.**
 
 Всегда строго соблюдай этот синтаксис. Не отступай от него ни на шаг.
@@ -10,13 +10,13 @@
 
 ## 0. О скрипте
 
-- **Файл:** `pure-py-patcher.py`
+- **Файл:** `pyed-patcher.py`
 - **Язык:** Чистый Python 3 (без внешних зависимостей)
 - **Запуск:**
   ```bash
-  python3 pure-py-patcher.py patch.txt           # из файла
-  echo '...' | python3 pure-py-patcher.py        # из stdin
-  python3 pure-py-patcher.py patch1.txt patch2.txt  # несколько патчей подряд
+  python3 pyed-patcher.py patch.txt           # из файла
+  echo '...' | python3 pyed-patcher.py        # из stdin
+  python3 pyed-patcher.py patch1.txt patch2.txt  # несколько патчей подряд
   ```
 
 ### CLI-флаги
@@ -48,17 +48,17 @@
 
 - Перед **любым** изменением/удалением/перемещением файла создаётся бэкап
 - Имя бэкапа: `имя_файла.NN` (например: `main.py.01`, `main.py.02`)
-- Откат: `python3 pure-py-patcher.py --undo main.py` или `--undo-all`
+- Откат: `python3 pyed-patcher.py --undo main.py` или `--undo-all`
 
 ### Шаблоны
 
 - В патче можно использовать плейсхолдеры: `{{VAR}}` или `{{VAR:default}}`
-- При применении: `python3 pure-py-patcher.py --var VERSION=1.2.3 patch.txt`
+- При применении: `python3 pyed-patcher.py --var VERSION=1.2.3 patch.txt`
 - Неподставленные переменные остаются как есть: `{{UNKNOWN}}`
 
 ### Логирование
 
-- Все операции записываются в `.pure-py-patcher.log`
+- Все операции записываются в `.pyed-patcher.log`
 - Формат: `[YYYY-MM-DD HH:MM:SS] ACTION | details`
 
 ---
@@ -241,7 +241,7 @@ def calculate():
 
 **Применение:**
 ```bash
-python3 pure-py-patcher.py --var FILENAME=config.py --var VERSION=2.1.0 --var NAME=Alice patch.txt
+python3 pyed-patcher.py --var FILENAME=config.py --var VERSION=2.1.0 --var NAME=Alice patch.txt
 ```
 
 ---
@@ -287,37 +287,37 @@ python3 pure-py-patcher.py --var FILENAME=config.py --var VERSION=2.1.0 --var NA
 
 ### Сценарий 1: Проверка перед применением
 ```bash
-python3 pure-py-patcher.py --show patch.txt
-python3 pure-py-patcher.py --dry-run patch.txt
-python3 pure-py-patcher.py --val patch.txt
+python3 pyed-patcher.py --show patch.txt
+python3 pyed-patcher.py --dry-run patch.txt
+python3 pyed-patcher.py --val patch.txt
 ```
 
 ### Сценарий 2: Осторожное применение
 ```bash
-python3 pure-py-patcher.py --int patch.txt
-python3 pure-py-patcher.py --only src/main.py patch.txt
+python3 pyed-patcher.py --int patch.txt
+python3 pyed-patcher.py --only src/main.py patch.txt
 ```
 
 ### Сценарий 3: Откат
 ```bash
-python3 pure-py-patcher.py --undo src/main.py
-python3 pure-py-patcher.py --undo-all
+python3 pyed-patcher.py --undo src/main.py
+python3 pyed-patcher.py --undo-all
 ```
 
 ### Сценарий 4: Шаблоны
 ```bash
-python3 pure-py-patcher.py --var VERSION=2.0.0 release.patch
+python3 pyed-patcher.py --var VERSION=2.0.0 release.patch
 ```
 
 ### Сценарий 5: Тест в памяти
 ```bash
-python3 pure-py-patcher.py --memory patch.txt
-python3 pure-py-patcher.py --memory --show patch.txt
+python3 pyed-patcher.py --memory patch.txt
+python3 pyed-patcher.py --memory --show patch.txt
 ```
 
 ### Сценарий 6: Генерация патча
 ```bash
-python3 pure-py-patcher.py --generate old.py new.py --as src/main.py > changes.patch
+python3 pyed-patcher.py --generate old.py new.py --as src/main.py > changes.patch
 ```
 
 ---
