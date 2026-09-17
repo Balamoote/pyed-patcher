@@ -105,28 +105,28 @@ python3 pyed-patcher.py --undo-all
 ## Python API
 
 ```python
-import pure_py_patcher
+import pyed_patcher
 
 # Apply patch in memory
 files = {"main.py": "old content\n"}
 patch = "*** Begin Patch\n*** Update File: main.py\n@@\n-old content\n+new content\n*** End Patch"
-result = pure_py_patcher.apply_patch_in_memory(patch, files)
+result = pyed_patcher.apply_patch_in_memory(patch, files)
 print(result.files)      # {'main.py': 'new content\n'}
 print(result.modified)   # ['main.py']
 
 # Generate patch
-patch = pure_py_patcher.generate_patch("main.py", "old\n", "new\n")
+patch = pyed_patcher.generate_patch("main.py", "old\n", "new\n")
 print(patch)
 
 # Generate patch for multiple files
-patch = pure_py_patcher.generate_patch_from_files({
+patch = pyed_patcher.generate_patch_from_files({
     "new.py": (None, "print('hello')\n"),
     "old.py": ("content\n", None),
     "update.py": ("old\n", "new\n"),
 })
 
 # Parse patch info
-descriptions, comments = pure_py_patcher.parse_patch_info(patch)
+descriptions, comments = pyed_patcher.parse_patch_info(patch)
 ```
 
 ## License
