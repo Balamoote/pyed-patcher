@@ -37,6 +37,7 @@ Always strictly follow this syntax. Do not deviate from it even a single step.
 | `--generate ORIG NEW [--as PATH]` | Generate patch from two files |
 | `--memory` | Apply patch in memory (test mode) |
 | `--help, -h` | Show help |
+| `--version` | Show version |
 
 ### Colored Output
 

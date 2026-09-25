@@ -1,3 +1,4 @@
+25.09.2026 - --cleanup --cleanlog --dellog options --version
 25.09.2026 - --undo w/o filename is now interactive: read logs and find available backups to restore.
 24.09.2026 - small additions to AI prompt.
 17.09.2026 - project name changed to pyed-patcher.

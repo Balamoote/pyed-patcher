@@ -63,9 +63,13 @@ python3 pyed-patcher.py patch1.txt patch2.txt patch3.txt
 | Flag | Description |
 |------|-------------|
 | `--dry-run` | Preview changes without applying |
-| `--undo FILE` | Restore file from latest backup of FILE |
 | `--undo` | Interactively restore files from available LOGGED backups |
+| `--undo [FILE]` | Restore file from latest backup of FILE |
 | `--undo-all` | Restore all files with backups |
+| `--cleanup` | Delete all backups found in the log")
+| `--cleanup [FILE]` | Delete backups of a FILE found in the log")
+| `--cleanlog` | Remove log entries that reference missing backups")
+| `--dellog` | Delete the log file")
 | `--only FILES...` | Apply patch only to specified files |
 | `--int` | Interactive mode (confirm each change) |
 | `--val` | Validate patch without applying |
@@ -76,6 +80,7 @@ python3 pyed-patcher.py patch1.txt patch2.txt patch3.txt
 | `--generate ORIG NEW [--as PATH]` | Generate patch from two files |
 | `--memory` | Apply patch in memory (test mode) |
 | `--help, -h` | Show help |
+| `--version` | Show version |
 
 ## Quick Examples
 

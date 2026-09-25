@@ -8,6 +8,7 @@ Features: colored output, automatic backups, patch comments display,
           validation, diff viewing, logging, save patch from stdin,
           template variables, multiple patches in one run,
           in-memory patch application, patch generation, Python API.
+Version: 1.5
 """
 
 import difflib
@@ -17,6 +18,9 @@ import shutil
 import sys
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
+
+
+__version__ = "1.5"
 
 
 # --- Terminal Colors ---
@@ -278,11 +282,11 @@ def parse_log_for_backups() -> List[Dict[str, Any]]:
 
                 for part in rest.split(" | "):
                     if part.startswith("Comment: "):
-                        comment = part[len("Comment: "):]
+                        comment = part[len("Comment: ") :]
                     elif part.startswith("File: "):
-                        target = part[len("File: "):]
+                        target = part[len("File: ") :]
                     elif part.startswith("Backup: "):
-                        backup = part[len("Backup: "):]
+                        backup = part[len("Backup: ") :]
 
                 # For MOVE: "File: src.py -> dst.py"
                 if action == "MOVE" and " -> " in target:
@@ -304,13 +308,15 @@ def parse_log_for_backups() -> List[Dict[str, Any]]:
                 except (ValueError, OSError):
                     continue
 
-                entries.append({
-                    "timestamp": timestamp,
-                    "action": action,
-                    "comment": comment,
-                    "target": target,
-                    "backup": backup,
-                })
+                entries.append(
+                    {
+                        "timestamp": timestamp,
+                        "action": action,
+                        "comment": comment,
+                        "target": target,
+                        "backup": backup,
+                    }
+                )
     except OSError:
         return []
 
@@ -428,6 +434,157 @@ def restore_from_entry(entry: Dict[str, Any]):
         )
     except OSError as e:
         error(f"Restore failed: {target} — {e}", filepaths=[target])
+
+
+def cleanup_backups(target_filter: Optional[str] = None):
+    """Delete backups found in the log. Optionally filter by target file."""
+    entries = parse_log_for_backups()
+
+    if not entries:
+        warn("No restorable backups found in log.")
+        return
+
+    if target_filter:
+        entries = [e for e in entries if e["target"] == target_filter]
+        if not entries:
+            warn(f"No backups found for: {target_filter}", filepaths=[target_filter])
+            return
+
+    # Collect unique backup paths (a file could appear multiple times)
+    seen = set()
+    unique_entries = []
+    for e in entries:
+        if e["backup"] not in seen:
+            seen.add(e["backup"])
+            unique_entries.append(e)
+
+    total_size = 0
+    for e in unique_entries:
+        try:
+            total_size += os.path.getsize(e["backup"])
+        except OSError:
+            pass
+
+    print("")
+    info(f"Backups to delete ({len(unique_entries)} file(s), {format_size_from_bytes(total_size)}):")
+    print("")
+
+    for e in unique_entries:
+        print("  ", end="")
+        color_print(e["backup"], Colors.CYAN, end="")
+        print(f"  ({format_size(e['backup'])})")
+
+    print("")
+    try:
+        answer = input("Delete these files? [y/N]: ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print("")
+        return
+
+    if answer != "y":
+        info("Aborted.")
+        return
+
+    deleted = 0
+    errors = 0
+    for e in unique_entries:
+        try:
+            os.remove(e["backup"])
+            deleted += 1
+            log_action("CLEANUP", f"Deleted: {e['backup']}")
+        except OSError as err:
+            error(f"Cannot delete: {e['backup']} — {err}", filepaths=[e["backup"]])
+            errors += 1
+
+    success(f"Deleted {deleted} file(s).")
+    if errors:
+        warn(f"Failed to delete {errors} file(s).")
+
+
+def format_size_from_bytes(size: int) -> str:
+    """Return human-readable size from a byte count."""
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024:
+            return f"{size:.1f} {unit}" if unit != "B" else f"{size} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+
+def clean_log():
+    """Remove log entries that reference missing backup files."""
+    if not os.path.exists(LOG_FILE):
+        warn(f"Log file not found: {LOG_FILE}")
+        return
+
+    # Patterns to extract backup paths from log lines
+    backup_re = re.compile(r"Backup:\s+(\S+)")
+    backups_re = re.compile(r"Backups:\s+(\S+)\s+->\s+(\S+)")
+    from_re = re.compile(r"From:\s+(\S+)")
+
+    kept = []
+    removed = 0
+
+    try:
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                stripped = line.rstrip("\n")
+                # Extract backup path references
+                refs = []
+                refs.extend(backup_re.findall(stripped))
+                for src, dst in backups_re.findall(stripped):
+                    refs.append(dst)  # check destination (backup)
+                refs.extend(from_re.findall(stripped))
+
+                if not refs:
+                    # No backup references — keep
+                    kept.append(stripped)
+                    continue
+
+                # Keep only if all referenced backups still exist
+                if all(os.path.exists(r) for r in refs):
+                    kept.append(stripped)
+                else:
+                    removed += 1
+    except OSError as e:
+        error(f"Cannot read log: {e}")
+        return
+
+    if removed == 0:
+        info(f"No stale entries found ({len(kept)} entries kept).")
+        return
+
+    try:
+        with open(LOG_FILE, "w", encoding="utf-8") as f:
+            for line in kept:
+                f.write(line + "\n")
+    except OSError as e:
+        error(f"Cannot write log: {e}")
+        return
+
+    success(f"Removed {removed} stale entr(ies). Kept {len(kept)}.")
+
+
+def delete_log():
+    """Delete the log file in current directory."""
+    if not os.path.exists(LOG_FILE):
+        warn(f"Log file not found: {LOG_FILE}")
+        return
+
+    try:
+        answer = input(f"Delete {LOG_FILE}? [y/N]: ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print("")
+        return
+
+    if answer != "y":
+        info("Aborted.")
+        return
+
+    try:
+        os.remove(LOG_FILE)
+        success(f"Deleted: {LOG_FILE}")
+    except OSError as e:
+        error(f"Cannot delete {LOG_FILE}: {e}", filepaths=[LOG_FILE])
 
 
 # --- Template System ---
@@ -1237,8 +1394,13 @@ def print_usage():
     print("")
     print("Options:")
     print("  --dry-run          Preview changes without applying")
-    print("  --undo [FILE]      Restore from latest backup (or pick from log if no FILE)")
-    print("  --undo-all         Restore all files with backups")
+    print("  --undo             Restore backups interactively (no FILE is specified!)")
+    print("  --undo [FILE]      Restore from the latest backup of a FILE")
+    print("  --undo-all         Restore all files with latest backups")
+    print("  --cleanup          Delete all backups found in the log")
+    print("  --cleanup [FILE]   Delete backups of a FILE found in the log")
+    print("  --cleanlog         Remove log entries that reference missing backups")
+    print("  --dellog           Delete the log file")
     print("  --only FILES...    Apply patch only to specified files")
     print("  --int              Interactive mode (confirm each change)")
     print("  --val              Validate patch without applying")
@@ -1250,6 +1412,7 @@ def print_usage():
     print("                     Generate patch from two files")
     print("  --memory           Apply patch in memory (test mode, no disk changes)")
     print("  --help, -h         Show this help")
+    print("  --version          Show version and exit")
     print("")
     print("Multiple patch files can be specified — they will be applied in order.")
     print("Templates: use {{VAR}} or {{VAR:default}} in patches and --var to fill them.")
@@ -1396,6 +1559,10 @@ def main():
         "--help": False,
         "--generate": False,
         "--memory": False,
+        "--cleanup": False,
+        "--cleanlog": False,
+        "--dellog": False,
+        "--version": False,
     }
 
     if "-h" in raw_args:
@@ -1436,6 +1603,10 @@ def main():
 
     if flags["--help"]:
         print_usage()
+        sys.exit(0)
+
+    if flags["--version"]:
+        print(f"pyed-patcher {__version__}")
         sys.exit(0)
 
     if flags["--generate"]:
@@ -1539,6 +1710,19 @@ def main():
                 undo_file(f)
         else:
             interactive_undo()
+        sys.exit(0)
+
+    if flags["--cleanup"]:
+        target = positional[0] if positional else None
+        cleanup_backups(target)
+        sys.exit(0)
+
+    if flags["--cleanlog"]:
+        clean_log()
+        sys.exit(0)
+
+    if flags["--dellog"]:
+        delete_log()
         sys.exit(0)
 
     patch_files = []
