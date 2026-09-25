@@ -15,7 +15,7 @@ import os
 import re
 import shutil
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -140,6 +140,9 @@ def create_backup(filepath: str) -> Optional[str]:
 
     try:
         shutil.copy2(filepath, backup_path)
+        # copy2 сохраняет mtime источника — перезапишем текущим временем
+        os.utime(backup_path, None)
+        log_action("BACKUP", f"File: {filepath} | Backup: {backup_path}")
         info("Backup: ", end="")
         color_print(backup_path, Colors.CYAN, file=sys.stderr, end="")
         color_print(" ✓", Colors.GREEN, file=sys.stderr, end="\n")
@@ -291,6 +294,16 @@ def parse_log_for_backups() -> List[Dict[str, Any]]:
                 if not os.path.exists(backup):
                     continue
 
+                # Мягкая проверка mtime: бэкап не может быть создан ПОСЛЕ записи в логе
+                # (допуск 5 секунд на округление timestamp)
+                try:
+                    log_dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+                    backup_mtime = datetime.fromtimestamp(os.path.getmtime(backup))
+                    if backup_mtime > log_dt + timedelta(seconds=5):
+                        continue
+                except (ValueError, OSError):
+                    continue
+
                 entries.append({
                     "timestamp": timestamp,
                     "action": action,
@@ -301,8 +314,8 @@ def parse_log_for_backups() -> List[Dict[str, Any]]:
     except OSError:
         return []
 
-    # Newest first
-    entries.reverse()
+    # Oldest first — so newest appear at the bottom of the list
+    entries.sort(key=lambda e: e["timestamp"])
     return entries
 
 
@@ -319,23 +332,46 @@ def interactive_undo():
     info("Available backups from log:")
     print("")
 
+    total = len(entries)
     for idx, e in enumerate(entries, 1):
-        # Header line: [N] ACTION | timestamp
-        header = f"  [{idx}] {e['action']} | {e['timestamp']}"
+        # Number from bottom: newest (last in list) gets [1]
+        display_num = total - idx + 1
+        header = f"  [{display_num}] {e['action']} | {e['timestamp']}"
         print(header)
 
         if e["comment"]:
-            print(f"      Comment: {e['comment']}")
+            color_print("      Comment: ", Colors.YELLOW, end="")
+            print(e["comment"])
 
         target = e["target"]
         if os.path.exists(target):
             target_info = f"{format_size(target)}, {format_mtime(target)}"
         else:
             target_info = "missing"
-        print(f"      Target:  {target}  ({target_info})")
+        print("      Target:  ", end="")
+        color_print(target, Colors.CYAN, end="")
+        print(f"  ({target_info})")
 
         backup = e["backup"]
-        print(f"      Backup:  {backup}  ({format_size(backup)}, {format_mtime(backup)})")
+        backup_size = format_size(backup)
+        backup_mtime_str = format_mtime(backup)
+        # Проверяем, совпадает ли mtime бэкапа с timestamp в логе
+        try:
+            log_dt = datetime.strptime(e["timestamp"], "%Y-%m-%d %H:%M:%S")
+            backup_mtime = datetime.fromtimestamp(os.path.getmtime(backup))
+            date_match = abs((backup_mtime - log_dt).total_seconds()) <= 5
+        except (ValueError, OSError):
+            date_match = False
+
+        print("      Backup:  ", end="")
+        color_print(backup, Colors.CYAN, end="")
+        print("  (", end="")
+        print(backup_size, end=", ")
+        if date_match:
+            color_print(backup_mtime_str, Colors.GREEN, end="")
+        else:
+            color_print(backup_mtime_str, Colors.RED, end="")
+        print(")")
         print("")
 
     # Ask for choice
@@ -355,11 +391,12 @@ def interactive_undo():
             warn("Invalid input.")
             continue
 
-        if num < 1 or num > len(entries):
-            warn(f"Choose between 1 and {len(entries)}.")
+        if num < 1 or num > total:
+            warn(f"Choose between 1 and {total}.")
             continue
 
-        entry = entries[num - 1]
+        # Map display number back to position in entries list
+        entry = entries[total - num]
         restore_from_entry(entry)
         return
 
@@ -374,15 +411,21 @@ def restore_from_entry(entry: Dict[str, Any]):
         return
 
     # Backup current target before restoring (if exists)
+    pre_backup = None
     if os.path.exists(target):
-        create_backup(target)
+        pre_backup = create_backup(target)
+        if pre_backup:
+            log_action("BACKUP", f"File: {target} | Backup: {pre_backup} | Reason: before undo")
 
     try:
         shutil.copy2(backup, target)
         success("Restored: ", end="")
         color_print(target, Colors.CYAN)
         success(f" ← {os.path.basename(backup)} ✓")
-        log_action("UNDO", f"Restored {target} from {os.path.basename(backup)}")
+        log_action(
+            "UNDO",
+            f"File: {target} | From: {os.path.basename(backup)} | PreBackup: {pre_backup or 'none'}",
+        )
     except OSError as e:
         error(f"Restore failed: {target} — {e}", filepaths=[target])
 
