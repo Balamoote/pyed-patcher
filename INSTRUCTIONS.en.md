@@ -74,6 +74,7 @@ Every patch begins with `*** Begin Patch` and ends with `*** End Patch`:
 ```
 
 The patch body contains one or more file operations (hunks).
+NB: ALWAYS follow the basic patch structure, never omit the ending marker *** End Patch
 
 ---
 
@@ -199,6 +200,7 @@ Any line starting with `***` that is not a known command will be treated as a co
 +    return 43
 *** End Patch
 ```
+NB: unless otherwise specified, always a single-line comment with a patch number. This simplifies the tracking of patch application.
 
 ---
 

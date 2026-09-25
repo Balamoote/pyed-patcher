@@ -1,2 +1,3 @@
-26.08.2026 - No backups if patches fail. Small changes to the log format.
+24.09.2026 - small additions to AI prompt.
 17.09.2026 - project name changed to pyed-patcher.
+26.08.2026 - No backups if patches fail. Small changes to the log format.
