@@ -225,6 +225,168 @@ def undo_all_files():
     log_action("UNDO-ALL", f"Restored {len(restored)} files")
 
 
+def format_size(path: str) -> str:
+    """Return human-readable file size."""
+    try:
+        size = os.path.getsize(path)
+    except OSError:
+        return "?"
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024:
+            return f"{size:.1f} {unit}" if unit != "B" else f"{size} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+
+def format_mtime(path: str) -> str:
+    """Return file modification time as string."""
+    try:
+        ts = os.path.getmtime(path)
+        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    except OSError:
+        return "?"
+
+
+def parse_log_for_backups() -> List[Dict[str, Any]]:
+    """Parse log file and return list of backup entries.
+    Each entry: {timestamp, action, comment, target, backup}."""
+    if not os.path.exists(LOG_FILE):
+        return []
+
+    entries = []
+    line_re = re.compile(r"^\[([^\]]+)\]\s+(\w+)\s+\|\s+(.*)$")
+
+    try:
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.rstrip("\n")
+                m = line_re.match(line)
+                if not m:
+                    continue
+                timestamp, action, rest = m.group(1), m.group(2), m.group(3)
+
+                if action not in ("MODIFY", "MOVE", "DELETE"):
+                    continue
+
+                # Parse details: Comment: ... | File: ... | Backup: ...
+                comment = ""
+                target = ""
+                backup = ""
+
+                for part in rest.split(" | "):
+                    if part.startswith("Comment: "):
+                        comment = part[len("Comment: "):]
+                    elif part.startswith("File: "):
+                        target = part[len("File: "):]
+                    elif part.startswith("Backup: "):
+                        backup = part[len("Backup: "):]
+
+                # For MOVE: "File: src.py -> dst.py"
+                if action == "MOVE" and " -> " in target:
+                    # Backup belongs to source
+                    target = target.split(" -> ")[1]
+
+                if not backup or backup == "none":
+                    continue
+                if not os.path.exists(backup):
+                    continue
+
+                entries.append({
+                    "timestamp": timestamp,
+                    "action": action,
+                    "comment": comment,
+                    "target": target,
+                    "backup": backup,
+                })
+    except OSError:
+        return []
+
+    # Newest first
+    entries.reverse()
+    return entries
+
+
+def interactive_undo():
+    """Show list of available backups from log and let user choose."""
+    entries = parse_log_for_backups()
+
+    if not entries:
+        warn("No restorable backups found in log.")
+        info(f"Log file: {LOG_FILE}")
+        return
+
+    print("")
+    info("Available backups from log:")
+    print("")
+
+    for idx, e in enumerate(entries, 1):
+        # Header line: [N] ACTION | timestamp
+        header = f"  [{idx}] {e['action']} | {e['timestamp']}"
+        print(header)
+
+        if e["comment"]:
+            print(f"      Comment: {e['comment']}")
+
+        target = e["target"]
+        if os.path.exists(target):
+            target_info = f"{format_size(target)}, {format_mtime(target)}"
+        else:
+            target_info = "missing"
+        print(f"      Target:  {target}  ({target_info})")
+
+        backup = e["backup"]
+        print(f"      Backup:  {backup}  ({format_size(backup)}, {format_mtime(backup)})")
+        print("")
+
+    # Ask for choice
+    while True:
+        try:
+            choice = input("Enter number to restore (or q to quit): ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("")
+            return
+
+        if choice in ("q", ""):
+            return
+
+        try:
+            num = int(choice)
+        except ValueError:
+            warn("Invalid input.")
+            continue
+
+        if num < 1 or num > len(entries):
+            warn(f"Choose between 1 and {len(entries)}.")
+            continue
+
+        entry = entries[num - 1]
+        restore_from_entry(entry)
+        return
+
+
+def restore_from_entry(entry: Dict[str, Any]):
+    """Restore target file from the given backup entry."""
+    backup = entry["backup"]
+    target = entry["target"]
+
+    if not os.path.exists(backup):
+        error(f"Backup file no longer exists: {backup}", filepaths=[backup])
+        return
+
+    # Backup current target before restoring (if exists)
+    if os.path.exists(target):
+        create_backup(target)
+
+    try:
+        shutil.copy2(backup, target)
+        success("Restored: ", end="")
+        color_print(target, Colors.CYAN)
+        success(f" ← {os.path.basename(backup)} ✓")
+        log_action("UNDO", f"Restored {target} from {os.path.basename(backup)}")
+    except OSError as e:
+        error(f"Restore failed: {target} — {e}", filepaths=[target])
+
+
 # --- Template System ---
 def resolve_templates(text: str, variables: Dict[str, str]) -> str:
     """Replace {{VAR}} placeholders with values from variables dict.
@@ -1032,7 +1194,7 @@ def print_usage():
     print("")
     print("Options:")
     print("  --dry-run          Preview changes without applying")
-    print("  --undo FILE        Restore file from latest backup")
+    print("  --undo [FILE]      Restore from latest backup (or pick from log if no FILE)")
     print("  --undo-all         Restore all files with backups")
     print("  --only FILES...    Apply patch only to specified files")
     print("  --int              Interactive mode (confirm each change)")
@@ -1329,11 +1491,11 @@ def main():
         undo_all_files()
         sys.exit(0)
     if flags["--undo"]:
-        if not positional:
-            error("Usage: python3 pyed-patcher.py --undo <file>")
-            sys.exit(1)
-        for f in positional:
-            undo_file(f)
+        if positional:
+            for f in positional:
+                undo_file(f)
+        else:
+            interactive_undo()
         sys.exit(0)
 
     patch_files = []

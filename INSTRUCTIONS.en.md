@@ -24,6 +24,7 @@ Always strictly follow this syntax. Do not deviate from it even a single step.
 | Flag | Description |
 |------|-------------|
 | `--dry-run` | Preview changes without applying |
+| `--undo` | Interactively restore files from available LOGGED backups |
 | `--undo FILE` | Restore file from latest backup |
 | `--undo-all` | Restore all files with backups |
 | `--only FILES...` | Apply patch only to specified files |
@@ -48,7 +49,7 @@ Always strictly follow this syntax. Do not deviate from it even a single step.
 
 - Before **any** modification/deletion/move, a backup is created
 - Backup name: `filename.NN` (e.g., `main.py.01`, `main.py.02`)
-- Rollback: `python3 pyed-patcher.py --undo main.py` or `--undo-all`
+- Rollback: `python3 pyed-patcher.py --undo main.py` or `--undo-all` or `--undo`
 
 ### Templates
 
@@ -275,6 +276,7 @@ python3 pyed-patcher.py --only src/main.py patch.txt
 
 ### Rollback
 ```bash
+python3 pyed-patcher.py --undo
 python3 pyed-patcher.py --undo src/main.py
 python3 pyed-patcher.py --undo-all
 ```

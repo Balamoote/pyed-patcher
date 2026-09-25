@@ -63,7 +63,8 @@ python3 pyed-patcher.py patch1.txt patch2.txt patch3.txt
 | Flag | Description |
 |------|-------------|
 | `--dry-run` | Preview changes without applying |
-| `--undo FILE` | Restore file from latest backup |
+| `--undo FILE` | Restore file from latest backup of FILE |
+| `--undo` | Interactively restore files from available LOGGED backups |
 | `--undo-all` | Restore all files with backups |
 | `--only FILES...` | Apply patch only to specified files |
 | `--int` | Interactive mode (confirm each change) |
